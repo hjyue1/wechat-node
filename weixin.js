@@ -78,6 +78,116 @@ exports.reply=function*(next){
 					mediaId:data.media_id
 				}
 			}
+			else if (content==='10') {
+				var picData =yield wechatApi.uploadMaterial('image',__dirname +'/2.jpg',{})
+				console.log(picData)
+				var media={
+					articles:[{
+						title:'tupian1',
+						thumb_media_id:picData.media_id,
+						author:'liudo',
+						digest:'没有摘要',
+						show_cover_pic:1,
+						content:"没有内容",
+						content_source_url:"www.baidu.com",
+					}]
+				}
+
+				var data= yield wechatApi.uploadMaterial('news', media,{})
+				//console.log(data)
+								console.log(data.media_id)
+												console.log(data.media_id)
+				var data=yield wechatApi.fetchMaterial(data.media_id,'news',{})
+
+				//console.log(data)
+				var items=data.news_item
+				var news=[]
+				console.log(items)
+				items.forEach(function(item){
+					news.push({
+						title:item.title,
+						description:item.digest,
+						picUrl:picData.url,
+						url:item.url,
+					})
+				})
+				reply=news
+			}
+			else if (content==='11') {
+				var count =yield wechatApi.countMaterial()
+				console.log(JSON.stringify(count))
+				reply=count
+			}
+			else if (content==='12') {
+				// var group=yield wechatApi.createGroup('wechat2')
+				// console.log('新分组 wechat2')
+				// console.log(group)
+
+				// var groups =yield wechatApi.fetchGroups()
+				// console.log('加了wechat后的分组列表')
+				// console.log(groups)
+
+				var group2 = yield wechatApi.checkGroup(message.FromUserName)
+				console.log(message.FromUserName)
+				console.log('查看自己分组')
+				console.log(group2)
+
+				var result =yield wechatApi.moveGroup(message.FromUserName,100)
+				console.log('移动到100分组')
+				console.log(result)
+
+				var groups2 =yield wechatApi.fetchGroups()
+				console.log('移动后分组列表')
+				console.log(groups2)
+
+				var result2 =yield wechatApi.moveGroup([message.FromUserName],101)
+				console.log('批量移动到101分组')
+				console.log(result2)
+
+				var groups3 =yield wechatApi.fetchGroups()
+				console.log('批量移动后分组列表')
+				console.log(groups3)
+
+				var result3 =yield wechatApi.updateGroup(102,'liudo168')
+				console.log('102改名liudo168')
+				console.log(result3)
+
+				var groups4 =yield wechatApi.fetchGroups()
+				console.log('改名后查看分组列表')
+				console.log(groups4)
+
+				var result4 =yield wechatApi.deleteGroup(125)
+				console.log('删除125')
+				console.log(result4)
+
+				var groups5 =yield wechatApi.fetchGroups()
+				console.log('删除后查看分组列表')
+				console.log(groups5)
+
+				reply='分组成功'
+			}
+			else if (content==='13') {
+				var user=yield wechatApi.fetchUsers(message.FromUserName,'en')
+				console.log(user)
+				var openIds=[
+					{
+						openid:message.FromUserName,
+						lang:'en'
+
+					}
+				]
+				var users=yield wechatApi.fetchUsers(openIds)
+				console.log(users)
+				reply=JSON.stringify(user)
+			}
+
+			else if (content==='14') {
+				var userlist=yield wechatApi.listUsers()
+				console.log(userlist)
+				reply=userlist.total
+			}
+
+
 
 			this.body=reply
 	}

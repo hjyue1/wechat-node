@@ -8,13 +8,35 @@ var prefix='https://api.weixin.qq.com/cgi-bin/'
 
 var api={
 	accessToken:prefix + 'token?grant_type=client_credential',
-	temporary:{
-		upload:prefix + 'media/upload?'
+	temporary:{//临时素材地址
+		upload:prefix + 'media/upload?',
+		fetch:prefix + 'media/get?',
 	},
-	permanent:{
+	permanent:{//永久素材地址
 		upload:prefix + 'material/add_material?',
 		uploadNews:prefix + 'material/add_news?',
-		uploadNewsPic:prefix + 'media/uploadimg?',
+		uploadNewsPic:prefix + 'material/uploadimg?',
+		fetch:prefix + 'material/get_material?',
+		del:prefix + 'material/del_material?',
+		updata:prefix + 'material/update_news?',
+		count:prefix + 'material/get_materialcount?',
+		batch:prefix + 'material/batchget_material?',
+	},
+	group:{//用户分组地址
+		create:prefix + 'groups/create?',
+		fetch:prefix + 'groups/get?',
+		check:prefix + 'groups/getid?',
+		update:prefix + 'groups/update?',
+		move:prefix + 'groups/members/update?',
+		barchupdate:prefix + 'groups/members/batchupdate?',
+		del:prefix + 'groups/delete?',
+
+	},
+	user:{//获取用户列表
+		remark:prefix+'user/info/updateremark?',
+		fetch:prefix+'user/info?',
+		batchFetch:prefix+'user/info/batchget?',
+		list:prefix+'user/get?',
 	}
 }
 
@@ -96,7 +118,7 @@ Wechat.prototype.updateAccessToken=function(data){
 	})
 }
 
-Wechat.prototype.uploadMaterial=function(type,material,filepath,permanent){
+Wechat.prototype.uploadMaterial=function(type,material,permanent){
 	var that=this
 	var form={}
 	var uploadUrl=api.temporary.upload
@@ -136,8 +158,7 @@ Wechat.prototype.uploadMaterial=function(type,material,filepath,permanent){
 				var options={
 					method:'POST',
 					url:url,
-					formData:form,
-					json:true
+					json:true,
 				}
 				if (type==='news') {
 					options.body=form
@@ -147,13 +168,7 @@ Wechat.prototype.uploadMaterial=function(type,material,filepath,permanent){
 				}
 
 				//console.log(url)
-					request({
-					method:'POST',
-					url:url,
-					formData:form,
-					json:true
-				}).then(function(response){
-					console.log(response.body)
+					request(options).then(function(response){
 				var _data=response.body
 				if (_data) {
 					resolve(_data)
@@ -169,6 +184,531 @@ Wechat.prototype.uploadMaterial=function(type,material,filepath,permanent){
 			})
 	})
 }
+
+Wechat.prototype.fetchMaterial=function(mediaId,type,permanent){
+	var that=this
+	var fetchUrl=api.temporary.fetch
+
+	if (permanent) {
+		fetchUrl=api.permanent.fetch
+	}
+
+
+
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url=fetchUrl+'access_token='+
+				data.access_token 
+				var form={}
+				var options={
+					method:'POST',
+					url:url,
+					json:true,
+				}
+
+				if (permanent) {
+					form.media_id=mediaId
+					form.access_token=data.access_token
+					options.body=form
+				}
+				else{
+					if (type==='video') {
+						url=url.replace('https://','http://')
+					}
+					url+= '&media_id=' +mediaId
+				}
+				if (type ==='news' || type==='video') {
+
+						request(options).then(function(response){
+							var _data= response.body
+							//console.log(_data)
+							if (_data) {
+								resolve(_data)
+						}
+							else{
+								throw new Error('fetch material fails')
+							}
+						})
+						.catch(function(err){
+							reject(err)
+						})
+				}
+				else{
+					resolve(url)
+				}
+
+
+			})
+	})
+}
+
+Wechat.prototype.deleteMaterial=function(mediaId){
+	var that=this
+	var form={
+		media_id:mediaId
+	}
+
+
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url=api.permanent.del+'access_token='+
+				data.access_token + '&media_id=' +mediaId
+					request({
+					method:'POST',
+					url:url,
+					body:form,
+					json:true
+				}).then(function(response){
+					console.log(response.body)
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('Delete material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+
+Wechat.prototype.updateMaterial=function(mediaId,news){
+	var that=this
+	var form={
+		media_id:mediaId
+	}
+
+	_.extend (form ,news)
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url=api.permanent.update+'access_token='+
+				data.access_token + '&media_id=' +mediaId
+					request({
+					method:'POST',
+					url:url,
+					body:form,
+					json:true
+				}).then(function(response){
+					console.log(response.body)
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('Update material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+
+
+Wechat.prototype.countMaterial=function(){
+	var that=this
+
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url=api.permanent.count+'access_token='+
+				data.access_token
+					request({
+					method:'GET',
+					url:url,
+					json:true
+				}).then(function(response){
+					console.log(response.body)
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('count material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+
+Wechat.prototype.batchMaterial=function(options){
+	var that=this
+
+	options.type=options.type || 'image'
+	options.offset=options.offset || 0
+	options.count=options.count || 1
+
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url=api.permanent.batch+'access_token='+
+				data.access_token
+					request({
+					method:'POST',
+					url:url,
+					body:options,
+					json:true
+				}).then(function(response){
+					console.log(response.body)
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('batch material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+
+Wechat.prototype.createGroup=function(name){
+	var that=this
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url=api.group.create+'access_token='+
+				data.access_token
+				var form={
+					group:{
+						name:name
+					}
+				}
+
+					request({
+					method:'POST',
+					url:url,
+					body:form,
+					json:true
+				}).then(function(response){
+
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('createGroup material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+Wechat.prototype.fetchGroups=function(name){
+	var that=this
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url=api.group.fetch+'access_token='+
+				data.access_token
+
+
+					request({
+					url:url,
+					json:true
+				}).then(function(response){
+					console.log(response.body)
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('fetchGroup material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+
+Wechat.prototype.checkGroup=function(openId){
+	var that=this
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url=api.group.check+'access_token='+
+				data.access_token
+				var form={
+					openid:openId
+				}
+				request({
+					method:'POST',
+					url:url,
+					body:form,
+					json:true
+				}).then(function(response){
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('checkGroup material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+
+Wechat.prototype.updateGroup=function(id,name){
+	var that=this
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url=api.group.update+'access_token='+
+				data.access_token
+				var form={
+					group:{
+						id:id,
+						name:name
+					}
+				}
+
+					request({
+					method:'POST',
+					url:url,
+					body:form,
+					json:true
+				}).then(function(response){
+					console.log(response.body)
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('updateGroup material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+
+Wechat.prototype.moveGroup=function(openIds,to){
+	var that=this
+
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url;
+				var form={
+						to_groupid:to
+				}
+				if (_.isArray(openIds)) {
+					var url=api.group.barchupdate+'access_token='+
+					data.access_token
+					form.openid_list=openIds
+				}else{
+					var url=api.group.move+'access_token='+
+					data.access_token;
+					form.openid=openIds
+				}
+
+					request({
+					method:'POST',
+					url:url,
+					body:form,
+					json:true
+				}).then(function(response){
+					console.log(response.body)
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('moveGroup  material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+
+Wechat.prototype.deleteGroup=function(id){
+	var that=this
+
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var form={
+					group:{
+						id:id
+					}
+				}
+				var url=api.group.del+'access_token='+
+				data.access_token
+
+
+					request({
+					method:'POST',
+					url:url,
+					body:form,
+					json:true
+				}).then(function(response){
+					console.log(response.body)
+				var _data=response.body
+				if (_data) {
+					resolve(_data)
+				}
+				else{
+					throw new Error('dateleGroup  material fails')
+				}
+				})
+				.catch(function(err){
+							reject(err)
+				})
+			})
+	})
+}
+Wechat.prototype.remarkUsers= function(openId,remark){
+	var that=this
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url = api.user.remark+'access_token=' +data.access_token 
+				var form={
+					openid:openId,
+					remark:remark
+				}
+
+
+				request({method:'POST',url:url,body:form,json:true}).then(
+					function(response){
+						var _data=response.body
+						if (_data) {
+							resolve(_data)
+						}
+						else{
+							throw new Error('remarkUsers 错误')
+						}
+					})
+				.catch(function(err){
+					reject(err)
+				})
+
+			})
+	})
+}
+
+Wechat.prototype.fetchUsers= function(openIds,lang){
+	var that=this
+	var lang = lang || 'zh_CH'
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var form;
+				var options={
+					json:true
+				}
+				if (_.isArray(openIds)) {
+					options.url = api.user.batchFetch+'access_token=' +data.access_token 
+						options.body={user_list:openIds};
+						options.method='POST'
+				}
+				else{
+					options.url = api.user.fetch+'access_token=' +data.access_token + '&openid='+openIds+'&lang='+lang
+				}
+				request(options).then(
+					function(response){
+						var _data=response.body
+						if (_data) {
+							resolve(_data)
+						}
+						else{
+							throw new Error('fetch 错误')
+						}
+					})
+				.catch(function(err){
+					reject(err)
+				})
+
+			})
+	})
+}
+
+
+Wechat.prototype.listUsers= function(openId){
+	var that=this
+
+	return new Promise(function(resolve,reject){
+		that
+			.fetchAccessToken()
+			.then(function(data){
+				var url = api.user.list+'access_token=' +data.access_token 
+				if (openId) {
+					url+='&next_openid='+openId
+				}
+
+				request({method:'GET',url:url,json:true}).then(
+					function(response){
+						var _data=response.body
+						if (_data) {
+							resolve(_data)
+						}
+						else{
+							throw new Error('listUsers 错误')
+						}
+					})
+				.catch(function(err){
+					reject(err)
+				})
+
+			})
+	})
+}
+
+
+
+
+
 
 
 Wechat.prototype.reply=function(){
